@@ -11,15 +11,12 @@ export const chatWithAI = async (req, res) => {
       conversationId,
     } = req.body;
 
-    // ❌ validation
     if (!question) {
       return res.status(400).json({ message: "Question is required" });
     }
 
     if (!conversationId) {
-      return res
-        .status(400)
-        .json({ message: "Conversation ID is required" });
+      return res.status(400).json({ message: "Conversation ID is required" });
     }
 
     // ✅ 1. Clean workout data
@@ -35,7 +32,7 @@ export const chatWithAI = async (req, res) => {
     }));
 
     // ✅ 2. System prompt
-   const systemPrompt = `
+    const systemPrompt = `
 You are a highly advanced, professional AI fitness coach. 
 
 CORE BEHAVIOR & TONE:
@@ -87,18 +84,18 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "http://localhost:5173",
+          "HTTP-Referer": "https://gym-tracker-frontend-beryl.vercel.app",
           "X-Title": "Gym AI Coach",
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: "anthropic/claude-3-haiku",
           messages: [
             { role: "system", content: systemPrompt },
             ...chatHistory,
             { role: "user", content: userPrompt },
           ],
           temperature: 0.6,
-          max_tokens: 300,
+          max_tokens: 800,
         }),
       }
     );
@@ -113,25 +110,18 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
       data?.error?.message ||
       "No response from AI";
 
-    // ✅ 7. Clean output
-    reply = reply
-      .replace(/[*#`]/g, "")
-      .replace(/-\s+/g, "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
+    // ✅ 7. Clean output (only trim, keep formatting)
+    reply = reply.trim();
 
-    // 🔥 8. AUTO TITLE (ONLY FIRST MESSAGE)
+    // ✅ 8. AUTO TITLE (ONLY FIRST MESSAGE)
     const existingChats = await Chat.countDocuments({ conversationId });
 
     if (existingChats === 0) {
       const title = await generateTitle(question);
-
-      await Conversation.findByIdAndUpdate(conversationId, {
-        title,
-      });
+      await Conversation.findByIdAndUpdate(conversationId, { title });
     }
 
-    // 🔥 9. SAVE CHAT
+    // ✅ 9. SAVE CHAT
     const chat = await Chat.create({
       userId: req.user.id,
       conversationId,
@@ -147,7 +137,6 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
 
   } catch (error) {
     console.error("AI Error:", error.message);
-
     res.status(500).json({
       message: "AI failed",
       error: error.message,
@@ -155,7 +144,7 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
   }
 };
 
-// 🔥 TITLE GENERATOR
+// ✅ TITLE GENERATOR
 export const generateTitle = async (text) => {
   try {
     const response = await fetch(
@@ -167,7 +156,7 @@ export const generateTitle = async (text) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: "anthropic/claude-3-haiku",
           messages: [
             {
               role: "system",
