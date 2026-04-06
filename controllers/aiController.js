@@ -44,21 +44,21 @@ CORE BEHAVIOR & TONE:
 
 RESPONSE LENGTH, PROGRESSION & FOLLOW-UPS:
 - Conversational Wrap-ups (CRITICAL OVERRIDE): If the user says "okay", "thanks", "got it", or otherwise signals they are closing the conversation, you must output a maximum of 1 or 2 sentences acknowledging them. STRICTLY DO NOT offer unprompted advice or new workout details, and STRICTLY DO NOT ask a follow-up question. Let the conversation end naturally.
-- Direct/Factual Queries: If the user's prompt has a definitive answer (e.g., macro calculations, form checks) give the complete answer and STRICTLY DO NOT ask any follow-up questions at the end.
-- Advisory/Broad Queries: If the prompt is broad or explicitly seeks advice (e.g., "what should I do for my plateau?"), provide the advice and end with EXACTLY ONE highly relevant follow-up question to guide the user forward.
+- Direct/Factual Queries: If the user's prompt has a definitive answer give the complete answer and STRICTLY DO NOT ask any follow-up questions at the end.
+- Advisory/Broad Queries: If the prompt is broad or explicitly seeks advice, provide the advice and end with EXACTLY ONE highly relevant follow-up question to guide the user forward.
 - Missing Information: If you need more details to give safe advice, provide a partial helpful response and explicitly ask for the missing details.
 
 USING USER CONTEXT (SEAMLESS INTEGRATION):
 - Treat past user data (goals, current workout split, diet, preferences) as shared mental context.
 - Weave this context seamlessly into your advice without narrating that you are doing so.
-- STRICT RULE: Never use prefatory clauses that summarize the user's attributes. Never use phrases like "Based on your goal...", "Since you are on an upper/lower split...", or "As you mentioned before...". 
+- STRICT RULE: Never use prefatory clauses. Never say "Based on your goal...", "Since you are on an upper/lower split...", or "As you mentioned before...". 
 
 FORMATTING & STRUCTURE (CRITICAL):
 - Structure every response for high scannability and visual clarity. 
-- Create a logical information hierarchy using Markdown headings (###), horizontal rules (---), and tables to organize data.
-- Use standard bullet points (-) for lists, keeping the text within them extremely concise to prioritize clarity over clutter. 
+- Use Markdown headings (###), horizontal rules (---), and tables to organize data.
+- Use standard bullet points (-) for lists, keeping text concise.
 - STRICTLY AVOID nested bullet points and nested lists.
-- Use bolding (**text**) judiciously to emphasize key phrases, target numbers (like weights, calories, sets/reps), and muscle groups.
+- Use bolding (**text**) to emphasize key phrases, target numbers, and muscle groups.
 `;
 
     // ✅ 3. Chat history
@@ -88,7 +88,7 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
           "X-Title": "Gym AI Coach",
         },
         body: JSON.stringify({
-          model: "anthropic/claude-3-haiku",
+          model: "anthropic/claude-3.5-haiku",
           messages: [
             { role: "system", content: systemPrompt },
             ...chatHistory,
@@ -101,7 +101,6 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
     );
 
     const data = await response.json();
-
     console.log("FULL AI RESPONSE:", JSON.stringify(data, null, 2));
 
     // ✅ 6. Extract response
@@ -110,12 +109,11 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
       data?.error?.message ||
       "No response from AI";
 
-    // ✅ 7. Clean output (only trim, keep formatting)
+    // ✅ 7. Just trim
     reply = reply.trim();
 
     // ✅ 8. AUTO TITLE (ONLY FIRST MESSAGE)
     const existingChats = await Chat.countDocuments({ conversationId });
-
     if (existingChats === 0) {
       const title = await generateTitle(question);
       await Conversation.findByIdAndUpdate(conversationId, { title });
@@ -156,12 +154,11 @@ export const generateTitle = async (text) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "anthropic/claude-3-haiku",
+          model: "anthropic/claude-3.5-haiku",
           messages: [
             {
               role: "system",
-              content:
-                "Generate a short 3-5 word title. No punctuation. Clean words only.",
+              content: "Generate a short 3-5 word title. No punctuation. Clean words only.",
             },
             {
               role: "user",
@@ -174,7 +171,6 @@ export const generateTitle = async (text) => {
     );
 
     const data = await response.json();
-
     return (
       data?.choices?.[0]?.message?.content?.trim() ||
       text.slice(0, 20)
