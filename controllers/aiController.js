@@ -19,7 +19,6 @@ export const chatWithAI = async (req, res) => {
       return res.status(400).json({ message: "Conversation ID is required" });
     }
 
-    // ✅ 1. Clean workout data
     const formattedWorkouts = workouts.slice(-15).map((w) => ({
       date: w.date,
       week: w.week,
@@ -31,7 +30,6 @@ export const chatWithAI = async (req, res) => {
       cardio: w.cardio,
     }));
 
-    // ✅ 2. System prompt
     const systemPrompt = `
 You are a highly advanced, professional AI fitness coach. 
 
@@ -59,13 +57,11 @@ FORMATTING:
 - Bold (**text**) key phrases, numbers, and muscle groups.
 `;
 
-    // ✅ 3. Chat history
     const chatHistory = history.slice(-6).map((msg) => ({
       role: msg.role === "user" ? "user" : "assistant",
       content: msg.text,
     }));
 
-    // ✅ 4. User prompt
     const userPrompt = `
 User Question:
 ${question}
@@ -74,7 +70,6 @@ Workout History:
 ${JSON.stringify(formattedWorkouts, null, 2)}
 `;
 
-    // ✅ 5. API call
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -86,7 +81,7 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
           "X-Title": "Gym AI Coach",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-3.3-70b-instruct:free",
+          model: "openai/gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             ...chatHistory,
@@ -101,23 +96,19 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
     const data = await response.json();
     console.log("FULL AI RESPONSE:", JSON.stringify(data, null, 2));
 
-    // ✅ 6. Extract response
     let reply =
       data?.choices?.[0]?.message?.content ||
       data?.error?.message ||
       "No response from AI";
 
-    // ✅ 7. Just trim
     reply = reply.trim();
 
-    // ✅ 8. AUTO TITLE (ONLY FIRST MESSAGE)
     const existingChats = await Chat.countDocuments({ conversationId });
     if (existingChats === 0) {
       const title = await generateTitle(question);
       await Conversation.findByIdAndUpdate(conversationId, { title });
     }
 
-    // ✅ 9. SAVE CHAT
     const chat = await Chat.create({
       userId: req.user.id,
       conversationId,
@@ -125,7 +116,6 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
       answer: reply,
     });
 
-    // ✅ 10. Response
     res.json({
       answer: reply,
       chatId: chat._id,
@@ -140,7 +130,6 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
   }
 };
 
-// ✅ TITLE GENERATOR
 export const generateTitle = async (text) => {
   try {
     const response = await fetch(
@@ -152,7 +141,7 @@ export const generateTitle = async (text) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-3.3-70b-instruct:free",
+          model: "openai/gpt-4o-mini",
           messages: [
             {
               role: "system",
