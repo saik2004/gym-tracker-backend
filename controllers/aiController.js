@@ -86,7 +86,7 @@ ${JSON.stringify(formattedWorkouts, null, 2)}
           "X-Title": "Gym AI Coach",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-3.1-8b-instruct:free",
+          model: "google/gemini-2.0-flash-exp:free",
           messages: [
             { role: "system", content: systemPrompt },
             ...chatHistory,
